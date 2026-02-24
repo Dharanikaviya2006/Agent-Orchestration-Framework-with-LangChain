@@ -1,0 +1,13 @@
+langchain
+langgraph
+langchain-openai
+langchain-community
+langsmith
+fastapi
+uvicorn
+redis
+faiss-cpu
+python-dotenv
+pydantic
+tenacity
+duckduckgo-search
