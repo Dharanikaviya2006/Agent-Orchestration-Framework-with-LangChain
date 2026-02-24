@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI Agent Orchestrator</title>
+
+<style>
+:root {
+    --primary: #4f46e5;
+    --bg: #0f172a;
+    --card: rgba(255,255,255,0.05);
+    --border: rgba(255,255,255,0.1);
+    --text: #f8fafc;
+}
+
+body {
+    margin: 0;
+    font-family: 'Segoe UI', sans-serif;
+    background: linear-gradient(135deg, #0f172a, #1e293b);
+    color: var(--text);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+}
+
+.app {
+    width: 95%;
+    max-width: 900px;
+    height: 90vh;
+    background: var(--card);
+    backdrop-filter: blur(12px);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.header {
+    padding: 16px;
+    border-bottom: 1px solid var(--border);
+    font-weight: 600;
+    font-size: 18px;
+    text-align: center;
+    background: rgba(255,255,255,0.03);
+}
+
+.chat {
+    flex: 1;
+    padding: 20px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.message {
+    max-width: 75%;
+    padding: 12px 16px;
+    border-radius: 14px;
+    line-height: 1.5;
+    animation: fadeIn 0.3s ease-in-out;
+}
+
+.user {
+    align-self: flex-end;
+    background: var(--primary);
+}
+
+.bot {
+    align-self: flex-start;
+    background: rgba(255,255,255,0.08);
+}
+
+.controls {
+    padding: 15px;
+    border-top: 1px solid var(--border);
+    display: flex;
+    gap: 10px;
+    align-items: center;
+}
+
+input[type="text"] {
+    flex: 1;
+    padding: 12px;
+    border-radius: 10px;
+    border: none;
+    outline: none;
+    font-size: 14px;
+}
+
+button {
+    padding: 10px 16px;
+    border-radius: 10px;
+    border: none;
+    cursor: pointer;
+    font-weight: 600;
+    background: var(--primary);
+    color: white;
+    transition: 0.2s;
+}
+
+button:hover {
+    opacity: 0.8;
+}
+
+.approve {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 13px;
+}
+
+.loading {
+    font-size: 13px;
+    opacity: 0.7;
+}
+
+@keyframes fadeIn {
+    from {opacity: 0; transform: translateY(6px);}
+    to {opacity: 1; transform: translateY(0);}
+}
+
+::-webkit-scrollbar {
+    width: 6px;
+}
+::-webkit-scrollbar-thumb {
+    background: var(--primary);
+    border-radius: 4px;
+}
+</style>
+</head>
+<body>
+
+<div class="app">
+    <div class="header">🚀 AI Agent Orchestrator</div>
+
+    <div class="chat" id="chat"></div>
+
+    <div class="controls">
+        <input type="text" id="query" placeholder="Ask your agent..." />
+        <div class="approve">
+            <input type="checkbox" id="approve" />
+            <label>Approve Plan</label>
+        </div>
+        <button onclick="runAgent()">Send</button>
+    </div>
+</div>
+
+<script>
+const chat = document.getElementById("chat");
+let sessionId = "session_" + Date.now();
+
+function addMessage(content, type) {
+    const div = document.createElement("div");
+    div.className = "message " + type;
+    div.textContent = content;
+    chat.appendChild(div);
+    chat.scrollTop = chat.scrollHeight;
+    return div;
+}
+
+async function runAgent() {
+    const input = document.getElementById("query");
+    const approve = document.getElementById("approve").checked;
+    const query = input.value.trim();
+    if (!query) return;
+
+    input.value = "";
+
+    addMessage(query, "user");
+    const botMessage = addMessage("⏳ Thinking...", "bot");
+
+    try {
+        const response = await fetch("/run", {
+            method: "POST",
+            headers: {"Content-Type": "application/json"},
+            body: JSON.stringify({
+                session_id: sessionId,
+                query: query,
+                approved: approve
+            })
+        });
+
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder();
+        botMessage.textContent = "";
+
+        while (true) {
+            const {done, value} = await reader.read();
+            if (done) break;
+            botMessage.textContent += decoder.decode(value);
+            chat.scrollTop = chat.scrollHeight;
+        }
+
+    } catch (err) {
+        botMessage.textContent = "❌ Error occurred.";
+        console.error(err);
+    }
+}
+
+document.getElementById("query").addEventListener("keypress", function(e) {
+    if (e.key === "Enter") {
+        runAgent();
+    }
+});
+</script>
+
+</body>
+</html>
